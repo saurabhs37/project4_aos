@@ -89,3 +89,21 @@ sys_uptime(void)
   release(&tickslock);
   return xticks;
 }
+
+int sys_kmalloc(void)
+{
+  int nbytes;
+  if(argint(0, &nbytes) < 0)
+    return 0;
+  return (int)kmalloc(nbytes);
+}
+
+int sys_kmfree(void)
+{
+  int addr;
+  if(argint(0, &addr) < 0)
+    return 0;
+  kmfree((void*)addr);
+  return 0;
+}
+
