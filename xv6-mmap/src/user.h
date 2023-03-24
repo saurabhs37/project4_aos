@@ -24,7 +24,7 @@ char* sbrk(int);
 int sleep(int);
 int uptime(void);
 void *kmalloc(uint nbytes);
-int kmfree(void *addr);
+void kmfree(void *addr);
 
 // ulib.c
 int stat(const char*, struct stat*);

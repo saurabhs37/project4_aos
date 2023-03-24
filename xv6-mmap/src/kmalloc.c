@@ -1,6 +1,6 @@
 #include "types.h"
-#include "stat.h"
-#include "param.h"
+//#include "stat.h"
+//#include "param.h"
 #include "defs.h"
 #include "mmu.h"
 
@@ -52,17 +52,22 @@ kmorecore(uint nu)
 
   // with kalloc we can allocate max 4096 byte of memory. 
   // We need to figure out how many header size we can accomodate in this
-  int maxNu = PGSIZE/sizeof(Header);
-  if (nu > maxNu) {
-    //panic("kmorecore");
-    return 0;
+  //int maxNu = PGSIZE/sizeof(Header);
+  //if (nu > maxNu) {
+  if (nu * sizeof(Header) > PGSIZE) {
+    //cprintf("hello\n");	  
+    //return 0;
+    panic("kmorecore");
   }
   //cprintf("hello");
   p = kalloc();
-  if(p == (char*)-1)
-    return 0;
+  if(p == 0) {
+     panic("kmorecore");  
+    //return 0;
+  }
   hp = (Header*)p;
-  hp->s.size = nu;
+  //hp->s.size = nu;
+  hp->s.size = PGSIZE / sizeof(Header);
   kmfree((void*)(hp + 1));
   return freep;
 }
