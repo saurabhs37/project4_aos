@@ -44,7 +44,7 @@ kmfree(void *ap)
   freep = p;
 }
 
-static Header*
+Header*
 kmorecore(uint nu)
 {
   char *p;
@@ -55,15 +55,12 @@ kmorecore(uint nu)
   //int maxNu = PGSIZE/sizeof(Header);
   //if (nu > maxNu) {
   if (nu * sizeof(Header) > PGSIZE) {
-    //cprintf("hello\n");	  
-    //return 0;
     panic("kmorecore");
   }
-  //cprintf("hello");
   p = kalloc();
+  uartputc('z'); 
   if(p == 0) {
      panic("kmorecore");  
-    //return 0;
   }
   hp = (Header*)p;
   //hp->s.size = nu;

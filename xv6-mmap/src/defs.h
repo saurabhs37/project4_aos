@@ -192,3 +192,8 @@ void            clearpteu(pde_t *pgdir, char *uva);
 // kmalloc/kmfree functions
 void* kmalloc(uint nbytes);
 void kmfree(void *ap);
+
+// mmmap/munmap function
+void mmapinit(void);
+void *mmap(void*, int, int, int, int, int);
+int munmap(void*, int);

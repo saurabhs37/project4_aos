@@ -6,6 +6,7 @@
 #include "mmu.h"
 #include "proc.h"
 #include "elf.h"
+#include "spinlock.h"
 
 extern char data[];  // defined by kernel.ld
 pde_t *kpgdir;  // for use in scheduler()
@@ -385,6 +386,97 @@ copyout(pde_t *pgdir, uint va, void *p, uint len)
   return 0;
 }
 
+// Implementation of mmap/munmap 
+
+// DS for bookeeping mmap/munmap 
+#define ANONYMOUS_REGION 0
+#define FILE_BACKED_REGION 1
+
+struct spinlock mmap_lock;
+
+typedef struct {
+  void* addr;
+  int length;
+  int region; 
+  int offset;  
+  int fd;
+  void *nxt;
+} mmapInfo;
+
+void mmapinit() 
+{
+  initlock(&mmap_lock, "mmap");
+}
+
+void *mmap(void* addr, int length, int prot, int flags, int fd, int offset)
+{
+  struct proc *p = myproc();
+  pte_t *pte;
+  char *a; // page align address
+  void *ret = 0; 
+  mmapInfo* node = 0;
+  struct file* f;
+  int newFd; 
+
+  if (p)
+  {
+    acquire(&mmap_lock);
+    if (addr != 0)
+    {
+      a = (char*)PGROUNDDOWN((uint)addr);
+      // check if we have page available at va addr
+      pte = walkpgdir(p->pgdir, a, 0);
+      if (*pte & PTE_P)
+      {
+        // Page already present,
+        // return new addr at the end;
+        a = (char*)(p->sz); 
+      }
+    }
+    else 
+    {
+      // input addr is 0, place page at end
+      a = (char*)(p->sz); 
+    }
+    ret = (void*)allocuvm(p->pgdir, (uint)a, (uint)a+length);
+    // insert this mapping in process mmapInfoList;
+    node = (mmapInfo*)kmalloc(sizeof(mmapInfo));
+    node->addr = ret;
+    node->length = length;
+    // check if fd is valid fd
+    if (fd < 0 || fd >= NOFILE || (f=p->ofile[fd]) == 0)
+    {
+      node->fd = -1;
+      node->region = ANONYMOUS_REGION;
+    }
+    else 
+    {
+      for (newFd = 0; newFd < NOFILE; newFd++)
+      {
+        if (p->ofile[newFd] == 0) {
+          p->ofile[newFd] = filedup(f);
+          break;
+        }
+      }
+      node->fd = newFd;
+      node->region = FILE_BACKED_REGION;
+    }
+    release(&mmap_lock);
+    node->nxt = p->mmapInfoList;
+    p->mmapInfoList = (void*)node;
+  }
+  return ret;
+}
+
+int munmap(void* addr, int length)
+{
+  struct proc *p = myproc();
+  if (p)
+  {
+
+  }
+  return -1;
+}
 //PAGEBREAK!
 // Blank page.
 //PAGEBREAK!
