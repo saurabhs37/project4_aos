@@ -52,19 +52,16 @@ kmorecore(uint nu)
 
   // with kalloc we can allocate max 4096 byte of memory. 
   // We need to figure out how many header size we can accomodate in this
-  //int maxNu = PGSIZE/sizeof(Header);
-  //if (nu > maxNu) {
   if (nu * sizeof(Header) > PGSIZE) {
-    panic("kmorecore");
+    panic("kmorecore large memory request");
   }
   p = kalloc();
-  uartputc('z'); 
   if(p == 0) {
-     panic("kmorecore");  
+     panic("kmorecore kalloc failed");  
   }
   hp = (Header*)p;
   //hp->s.size = nu;
-  hp->s.size = PGSIZE / sizeof(Header);
+  hp->s.size = PGSIZE / sizeof(Header); 
   kmfree((void*)(hp + 1));
   return freep;
 }

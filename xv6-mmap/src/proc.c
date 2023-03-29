@@ -200,6 +200,7 @@ fork(void)
   np->sz = curproc->sz;
   np->parent = curproc;
   *np->tf = *curproc->tf;
+  np->mmapInfoList = curproc->mmapInfoList; // share mmap info with child
 
   // Clear %eax so that fork returns 0 in the child.
   np->tf->eax = 0;
@@ -242,6 +243,10 @@ exit(void)
       curproc->ofile[fd] = 0;
     }
   }
+
+  // clear all mmap pages 
+  unmapallmmap();
+  curproc->mmapInfoList = 0;
 
   begin_op();
   iput(curproc->cwd);

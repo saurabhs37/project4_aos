@@ -197,3 +197,4 @@ void kmfree(void *ap);
 void mmapinit(void);
 void *mmap(void*, int, int, int, int, int);
 int munmap(void*, int);
+void unmapallmmap();
