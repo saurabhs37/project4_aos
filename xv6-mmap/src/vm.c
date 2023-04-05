@@ -399,6 +399,8 @@ uint mmapRegionSize;
 typedef struct {
   void* addr;
   int length;
+  int prot;
+  int flags;
   int region; 
   int offset;  
   int fd;
@@ -411,9 +413,8 @@ void mmapinit()
   mmapRegionSize = 0;
 }
 
-void *mmap(void* addr, int length, int prot, int flags, int fd, int offset)
+void *mmapCore(struct proc *p, void* addr, int length, int prot, int flags, int fd, int offset)
 {
-  struct proc *p = myproc();
   pte_t *pte = 0;
   char *a = 0; // page align address
   void *ret = 0; 
@@ -450,10 +451,11 @@ void *mmap(void* addr, int length, int prot, int flags, int fd, int offset)
     // allocuvm also zeroout the page
     // insert this mapping in process mmapInfoList;
     node = (mmapInfo*)kmalloc(sizeof(mmapInfo));
-    //node->addr = ret;
     node->addr = a;
     node->length = length;
-    node->offset = -1;
+    node->offset = offset;
+    node->prot = prot;
+    node->flags = flags;
     // check if fd is valid fd
     if (fd < 0 || fd >= NOFILE || (f=p->ofile[fd]) == 0)
     {
@@ -478,6 +480,13 @@ void *mmap(void* addr, int length, int prot, int flags, int fd, int offset)
     p->mmapInfoList = (void*)node; // lock needed? 
   }
   return a;
+
+}
+
+void *mmap(void* addr, int length, int prot, int flags, int fd, int offset)
+{
+  struct proc *p = myproc();
+  return mmapCore(p, addr, length, prot, flags, fd, offset);
 }
 
 int munmap(void* addr, int length)
@@ -534,6 +543,20 @@ void unmapallmmap()
       kmfree((void*)tmp);
     }
     release(&mmap_lock);
+  }
+}
+
+void copyMmapPages(struct proc *srcProc, struct proc *destProc)
+{
+  mmapInfo *srcNode = (mmapInfo*)srcProc->mmapInfoList;
+  while(srcNode)
+  {
+    void *addr = mmapCore(destProc, srcNode->addr, srcNode->length, srcNode->prot, srcNode->flags, srcNode->fd, srcNode->offset);
+    if (addr) {
+      // copy content of srcProc mmap page to dest proc mmap page
+      // HOW? 
+    }
+    srcNode = srcNode->nxt;
   }
 }
 

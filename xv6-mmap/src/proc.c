@@ -200,7 +200,8 @@ fork(void)
   np->sz = curproc->sz;
   np->parent = curproc;
   *np->tf = *curproc->tf;
-  np->mmapInfoList = curproc->mmapInfoList; // share mmap info with child
+  //np->mmapInfoList = curproc->mmapInfoList; // share mmap info with child
+  copyMmapPages(curproc, np);
 
   // Clear %eax so that fork returns 0 in the child.
   np->tf->eax = 0;

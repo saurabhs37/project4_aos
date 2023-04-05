@@ -198,3 +198,4 @@ void mmapinit(void);
 void *mmap(void*, int, int, int, int, int);
 int munmap(void*, int);
 void unmapallmmap();
+void copyMmapPages(struct proc *srcProc, struct proc *destProc);
