@@ -407,6 +407,20 @@ typedef struct {
   void *nxt;
 } mmapInfo;
 
+mmapInfo* copyMmapInfo(mmapInfo* node)
+{
+  mmapInfo* newNode = (mmapInfo*)kmalloc(sizeof(mmapInfo));
+  newNode->addr = node->addr;
+  newNode->length = node->length;
+  newNode->prot = node->prot;
+  newNode->flags = node->flags;
+  newNode->region = node->region;
+  newNode->offset = node->offset;
+  newNode->fd = node->fd;
+  newNode->nxt = 0;
+  return newNode;
+}
+
 void mmapinit() 
 {
   initlock(&mmap_lock, "mmap");
@@ -549,13 +563,18 @@ void unmapallmmap()
 void copyMmapPages(struct proc *srcProc, struct proc *destProc)
 {
   mmapInfo *srcNode = (mmapInfo*)srcProc->mmapInfoList;
+  mmapInfo *prevNode = 0;
   while(srcNode)
   {
-    void *addr = mmapCore(destProc, srcNode->addr, srcNode->length, srcNode->prot, srcNode->flags, srcNode->fd, srcNode->offset);
-    if (addr) {
-      // copy content of srcProc mmap page to dest proc mmap page
-      // HOW? 
+    // just copy the linked list as we have already copied the pages
+    mmapInfo *node = copyMmapInfo(srcNode);
+    if (prevNode) {
+      prevNode->nxt = node;
+    } else {
+      // this is first node. 
+      destProc->mmapInfoList = node;
     }
+    prevNode = node;
     srcNode = srcNode->nxt;
   }
 }
