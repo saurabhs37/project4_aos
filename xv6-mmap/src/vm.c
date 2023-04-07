@@ -564,10 +564,33 @@ void copyMmapPages(struct proc *srcProc, struct proc *destProc)
 {
   mmapInfo *srcNode = (mmapInfo*)srcProc->mmapInfoList;
   mmapInfo *prevNode = 0;
+  mmapInfo *node = 0;
+  uint i, pa, flags;
+  char* mem;
+  pte_t *pte;
+  pde_t *d = destProc->pgdir;
+  pde_t *pgdir = srcProc->pgdir;
   while(srcNode)
   {
+    // allocate page for child process 
+    for (i = (uint)srcNode->addr; i < (uint)srcNode->addr + srcNode->length; i+=PGSIZE)
+    {
+      if ((pte = walkpgdir(pgdir, (void*)i, 0)) == 0)
+        return;
+      if (!(*pte & PTE_P))
+        return;
+      pa = PTE_ADDR(*pte);
+      flags = PTE_FLAGS(*pte);
+      if ((mem = kalloc()) == 0)
+        return;
+      memmove(mem, (char*)P2V(pa), PGSIZE);
+      if(mappages(d, (void*)i, PGSIZE, V2P(mem), flags) < 0) {
+        return;
+      }
+    } 
+
     // just copy the linked list as we have already copied the pages
-    mmapInfo *node = copyMmapInfo(srcNode);
+    node = copyMmapInfo(srcNode);
     if (prevNode) {
       prevNode->nxt = node;
     } else {
