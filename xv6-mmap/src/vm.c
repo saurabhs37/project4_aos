@@ -437,7 +437,7 @@ void *mmapCore(struct proc *p, void* addr, int length, int prot, int flags, int 
   int newFd = -1;
   int lenInPageSz = 0; 
 
-  if (p && length > 0 && (uint) addr < KERNBASE)
+  if (p && length > 0)
   {
     acquire(&mmap_lock);
     if (addr != 0)
