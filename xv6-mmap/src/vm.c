@@ -570,8 +570,12 @@ void copyMmapPages(struct proc *srcProc, struct proc *destProc)
   uint i, pa, flags;
   char* mem;
   pte_t *pte;
-  pde_t *d = destProc->pgdir;
-  pde_t *pgdir = srcProc->pgdir;
+  pde_t *d = 0;
+  pde_t *pgdir = 0;
+  if (srcProc == 0 || destProc == 0)
+    return;
+  d = destProc->pgdir;
+  pgdir = srcProc->pgdir;
   acquire(&mmap_lock);
   while(srcNode)
   {
