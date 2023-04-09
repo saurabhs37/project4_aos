@@ -33,7 +33,7 @@ seginit(void)
 // Return the address of the PTE in page table pgdir
 // that corresponds to virtual address va.  If alloc!=0,
 // create any required page table pages.
-pte_t *
+static pte_t *
 walkpgdir(pde_t *pgdir, const void *va, int alloc)
 {
   pde_t *pde;
@@ -389,7 +389,7 @@ copyout(pde_t *pgdir, uint va, void *p, uint len)
 
 // Implementation of mmap/munmap 
 
-// DS for bookeeping mmap/munmap 
+// DS for bookkeeping mmap/munmap 
 #define ANONYMOUS_REGION 0
 #define FILE_BACKED_REGION 1
 
@@ -460,8 +460,10 @@ void *mmapCore(struct proc *p, void* addr, int length, int prot, int flags, int 
       lenInPageSz = (length - 1) / PGSIZE + 1;
     }
     ret = (void*)allocuvm(p->pgdir, (uint)a, (uint)a+length);
-    if (ret == 0)
+    if (ret == 0) {
+      release(&mmap_lock);
       return 0;
+    }
     // allocuvm also zeroout the page
     // insert this mapping in process mmapInfoList;
     node = (mmapInfo*)kmalloc(sizeof(mmapInfo));
@@ -570,21 +572,29 @@ void copyMmapPages(struct proc *srcProc, struct proc *destProc)
   pte_t *pte;
   pde_t *d = destProc->pgdir;
   pde_t *pgdir = srcProc->pgdir;
+  acquire(&mmap_lock);
   while(srcNode)
   {
     // allocate page for child process 
     for (i = (uint)srcNode->addr; i < (uint)srcNode->addr + srcNode->length; i+=PGSIZE)
     {
-      if ((pte = walkpgdir(pgdir, (void*)i, 0)) == 0)
+      if ((pte = walkpgdir(pgdir, (void*)i, 0)) == 0) {
+        release(&mmap_lock);
         return;
-      if (!(*pte & PTE_P))
+      }
+      if (!(*pte & PTE_P)) {
+        release(&mmap_lock);
         return;
+      }
       pa = PTE_ADDR(*pte);
       flags = PTE_FLAGS(*pte);
-      if ((mem = kalloc()) == 0)
+      if ((mem = kalloc()) == 0) {
+        release(&mmap_lock);
         return;
+      }
       memmove(mem, (char*)P2V(pa), PGSIZE);
       if(mappages(d, (void*)i, PGSIZE, V2P(mem), flags) < 0) {
+        release(&mmap_lock);
         return;
       }
     } 
@@ -600,6 +610,7 @@ void copyMmapPages(struct proc *srcProc, struct proc *destProc)
     prevNode = node;
     srcNode = srcNode->nxt;
   }
+  release(&mmap_lock);
 }
 
 //PAGEBREAK!

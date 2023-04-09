@@ -1,6 +1,4 @@
 #include "types.h"
-//#include "stat.h"
-//#include "param.h"
 #include "defs.h"
 #include "mmu.h"
 
