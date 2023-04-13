@@ -429,8 +429,8 @@ void mmapinit()
 
 void *mmapCore(struct proc *p, void* addr, int length, int prot, int flags, int fd, int offset)
 {
-  pte_t *pte = 0;
   char *a = 0; // page align address
+  char *b = 0; // tmp addr
   void *ret = 0; 
   mmapInfo* node = 0;
   struct file* f = 0;
@@ -440,25 +440,11 @@ void *mmapCore(struct proc *p, void* addr, int length, int prot, int flags, int 
   if (p && length > 0)
   {
     acquire(&mmap_lock);
-    if (addr != 0)
-    {
-      a = (char*)PGROUNDDOWN((uint)addr);
-      // check if we have page available at va addr
-      pte = walkpgdir(p->pgdir, a, 0);
-      if (*pte & PTE_P)
-      {
-        // Page already present,
-        // return new addr at the end;
-        a = (char*)(MMAPBASE + mmapRegionSize);
-        lenInPageSz = (length - 1) / PGSIZE + 1;
-      }
-    }
-    else 
-    {
-      // input addr is 0, place page at end
-      a = (char*)(MMAPBASE + mmapRegionSize);
-      lenInPageSz = (length - 1) / PGSIZE + 1;
-    }
+    // input addr is 0 or non-zero, place page at end
+    // ignoreing hint 
+    b = (char*)(MMAPBASE + mmapRegionSize);
+    a = (char*)PGROUNDDOWN((uint)b);
+    lenInPageSz = (length - 1) / PGSIZE + 1;
     ret = (void*)allocuvm(p->pgdir, (uint)a, (uint)a+length);
     if (ret == 0) {
       release(&mmap_lock);
